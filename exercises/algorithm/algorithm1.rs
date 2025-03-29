@@ -2,8 +2,9 @@
 	single linked list merge
 	This problem requires you to merge two ordered singly linked lists into one ordered singly linked list
 */
-// I AM NOT DONE
+// I AM DONE
 
+use std::cmp::Ordering;
 use std::fmt::{self, Display, Formatter};
 use std::ptr::NonNull;
 use std::vec::*;
@@ -23,19 +24,19 @@ impl<T> Node<T> {
     }
 }
 #[derive(Debug)]
-struct LinkedList<T> {
+struct LinkedList<T:PartialOrd+Clone> {
     length: u32,
     start: Option<NonNull<Node<T>>>,
     end: Option<NonNull<Node<T>>>,
 }
 
-impl<T> Default for LinkedList<T> {
+impl<T:PartialOrd+Clone> Default for LinkedList<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> LinkedList<T> {
+impl<T:PartialOrd+Clone> LinkedList<T> {
     pub fn new() -> Self {
         Self {
             length: 0,
@@ -71,18 +72,60 @@ impl<T> LinkedList<T> {
     }
 	pub fn merge(list_a:LinkedList<T>,list_b:LinkedList<T>) -> Self
 	{
-		//TODO
-		Self {
-            length: 0,
-            start: None,
-            end: None,
+        fn next<T>(node:Option<NonNull<Node<T>>>)->Option<NonNull<Node<T>>> {
+            let Some(ptr) = node else {
+                return None;
+            };
+            unsafe { ptr.read().next }
         }
+
+		//TODO
+        let mut list_c = Self::new();
+        let mut node_a = list_a.start;
+        let mut node_b = list_b.start;
+
+        loop {
+            match (node_a,node_b) {
+                (Some(a),Some(b)) => {
+                    let (a,b) = unsafe {
+                        (&a.as_ref().val,&b.as_ref().val)
+                    };
+                    let c =
+                    if a <= b {
+                        node_a = next(node_a);
+                        a
+                    } else {
+                        node_b = next(node_b);
+                        b
+                    };
+                    list_c.add(c.clone());
+                }
+                (Some(a),None) => {
+                    node_a = next(node_a);
+                    let c = unsafe {
+                        &a.as_ref().val
+                    };
+                    list_c.add(c.clone());
+                }
+                (None,Some(b)) => {
+                    node_b = next(node_b);
+                    let c = unsafe {
+                        &b.as_ref().val   
+                    };
+                    list_c.add(c.clone());
+                }
+                (None,None) => {
+                    break;
+                }
+            }
+        }
+        list_c
 	}
 }
 
 impl<T> Display for LinkedList<T>
 where
-    T: Display,
+    T: Display + PartialOrd + Clone,
 {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self.start {
